@@ -1,34 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-ink: #1A1917;
-    --color-ink-mid: #4A4845;
-    --color-ink-light: #8C8980;
-    --color-surface: #FFFFFF;
-    --color-surface-alt: #F4F3EF;
-    --color-border: #E5E3DC;
-  }
-
-  ::selection {
-    background: #1A1917;
-    color: #FAFAF8;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
+@theme {
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-ink: #1A1917;
+  --color-ink-mid: #4A4845;
+  --color-ink-light: #8C8980;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F4F3EF;
+  --color-border: #E5E3DC;
 }
 
-@layer utilities {
-  .font-serif {
-    font-family: var(--font-serif), Georgia, serif;
-  }
-  .font-sans {
-    font-family: var(--font-sans), system-ui, sans-serif;
-  }
+::selection {
+  background: #1A1917;
+  color: #FAFAF8;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @keyframes fadeUp {
@@ -44,7 +33,6 @@
 .animate-fade-up {
   animation: fadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-
 .animate-ticker {
   animation: ticker 30s linear infinite;
 }
