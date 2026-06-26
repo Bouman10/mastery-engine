@@ -11,22 +11,29 @@ export default function LearnPhase({ track, cycleNumber }: { track: Track; cycle
   const [read, setRead] = useState(false);
   const router = useRouter();
 
+  // Always use the live track — skill, goal, duration come from the actual user choice
   useEffect(() => {
     fetch("/api/learn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ skill: track.skill, duration: track.duration, goal: track.goal, cycleNumber }),
+      body: JSON.stringify({
+        skill: track.skill,
+        duration: track.duration,
+        goal: track.goal,
+        cycleNumber,
+      }),
     })
-      .then(r => r.json())
-      .then(data => { setContent(data); setLoading(false); });
-  }, []);
+      .then((r) => r.json())
+      .then((data) => { setContent(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [track.skill, track.duration, track.goal, cycleNumber]);
 
   return (
     <div>
-      <PhaseHeader active="learn" cycleNumber={cycleNumber} />
+      <PhaseHeader active="learn" cycleNumber={cycleNumber} skill={track.skill} />
 
       {loading ? (
-        <LoadingDots label="Generating your learning brief…" />
+        <LoadingDots label={`Building your ${track.skill} brief…`} />
       ) : content ? (
         <div className="animate-fade-up space-y-5">
           <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
@@ -57,32 +64,31 @@ export default function LearnPhase({ track, cycleNumber }: { track: Track; cycle
           </div>
 
           <label className="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={read} onChange={e => setRead(e.target.checked)} className="w-4 h-4 accent-stone-900 rounded" />
+            <input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} className="w-4 h-4 accent-stone-900 rounded" />
             <span className="text-sm text-stone-500">I&apos;ve read and understood these fundamentals</span>
           </label>
 
-          <button
-            disabled={!read}
-            onClick={() => router.push("/cycle/build")}
-            className="w-full bg-stone-900 text-stone-50 font-semibold py-3.5 rounded-xl disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed hover:bg-stone-800 transition-colors"
-          >
+          <button disabled={!read} onClick={() => router.push("/cycle/build")}
+            className="w-full bg-stone-900 text-stone-50 font-semibold py-3.5 rounded-xl disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed hover:bg-stone-800 transition-colors">
             Ready to build →
           </button>
         </div>
-      ) : null}
+      ) : (
+        <p className="text-sm text-red-500 mt-4">Could not load content. Check your GROQ_API_KEY in .env.local.</p>
+      )}
     </div>
   );
 }
 
-function PhaseHeader({ active, cycleNumber }: { active: string; cycleNumber: number }) {
+function PhaseHeader({ active, cycleNumber, skill }: { active: string; cycleNumber: number; skill: string }) {
   return (
     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-200">
       <div className="flex gap-1.5">
-        {PHASES.map(p => (
+        {PHASES.map((p) => (
           <div key={p} className={`h-1.5 rounded-full transition-all duration-300 ${p === active ? "w-5 bg-stone-900" : "w-1.5 bg-stone-200"}`} />
         ))}
       </div>
-      <span className="text-xs text-stone-400">Cycle {cycleNumber}</span>
+      <span className="text-xs text-stone-400">{skill} · Cycle {cycleNumber}</span>
       <span className="ml-auto text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-md">Learn · 20%</span>
     </div>
   );
@@ -92,7 +98,7 @@ function LoadingDots({ label }: { label: string }) {
   return (
     <div className="py-16 text-center">
       <div className="flex gap-1.5 justify-center mb-3">
-        {[0, 1, 2].map(i => (
+        {[0, 1, 2].map((i) => (
           <span key={i} className="w-2 h-2 rounded-full bg-stone-300 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
         ))}
       </div>

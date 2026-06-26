@@ -62,7 +62,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-stone-200 px-6 py-5 flex justify-between items-center max-w-5xl mx-auto">
         <span className="font-serif text-lg">Mastery</span>
-        <span className="text-xs text-stone-400">Built for the ambitious. © 2025</span>
+        <span className="text-xs text-stone-400">Built for the ambitious. © 2026</span>
       </footer>
     </main>
   );
