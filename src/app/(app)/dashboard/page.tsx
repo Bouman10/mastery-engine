@@ -12,43 +12,58 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // ── ONLY the most recently created active track ──────────────────
+  // Order by created_at DESC + limit 1 so stale old tracks never surface
   const { data: tracks } = await supabase
-    .from("tracks").select("*").eq("user_id", user.id).eq("is_active", true).limit(1);
+    .from("tracks")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
 
   if (!tracks || tracks.length === 0) redirect("/onboarding");
   const track = tracks[0] as Track;
 
   const { data: cycles } = await supabase
-    .from("cycles").select("*").eq("track_id", track.id).order("cycle_number", { ascending: true });
+    .from("cycles")
+    .select("*")
+    .eq("track_id", track.id)  // ← scoped to THIS track only, not all tracks ever
+    .order("cycle_number", { ascending: true });
 
   const completedCycles = (cycles || []) as Cycle[];
-  const totalCycles = getCycleCount(track.duration);
-  const nextCycleNum = completedCycles.length + 1;
+  const totalCycles     = getCycleCount(track.duration);
+  const nextCycleNum    = completedCycles.length + 1;
   const avg = completedCycles.length
     ? Math.round(completedCycles.reduce((a, c) => a + (c.score || 0), 0) / completedCycles.length)
     : null;
   const lastCycle = completedCycles[completedCycles.length - 1];
+  const progress  = Math.round((completedCycles.length / totalCycles) * 100);
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-xs font-semibold tracking-[0.14em] uppercase text-stone-400 mb-1">{track.duration}-day path</p>
-        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight mb-2">{track.skill}</h1>
+        <p className="text-xs font-semibold tracking-[0.14em] uppercase text-stone-400 mb-1">
+          {track.duration}-day path
+        </p>
+        <h1 className="font-serif text-3xl md:text-4xl text-stone-900 tracking-tight mb-2">
+          {track.skill}
+        </h1>
         <p className="text-sm text-stone-500 leading-relaxed">{track.goal}</p>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       <div className="mb-6">
         <div className="flex justify-between text-xs text-stone-400 mb-2">
           <span>Progress</span>
-          <span>Cycle {completedCycles.length} / {totalCycles}</span>
+          <span className="font-medium text-stone-600">
+            Cycle {completedCycles.length} / {totalCycles}
+          </span>
         </div>
         <div className="h-1.5 bg-stone-200 rounded-full">
-          <div
-            className="h-full bg-stone-900 rounded-full transition-all duration-700"
-            style={{ width: `${Math.round((completedCycles.length / totalCycles) * 100)}%` }}
-          />
+          <div className="h-full bg-stone-900 rounded-full transition-all duration-700"
+            style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -56,10 +71,11 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
           { label: "Cycles done", value: completedCycles.length },
-          { label: "Avg. score", value: avg ?? "—" },
-          { label: "Days left", value: track.duration },
+          { label: "Avg. score",  value: avg ?? "—" },
+          { label: "Days left",   value: track.duration },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-stone-200 rounded-xl p-4">
+          <div key={s.label}
+            className="bg-white border border-stone-200 rounded-xl p-4">
             <p className="text-xs text-stone-400 uppercase tracking-[0.1em] mb-1.5">{s.label}</p>
             <p className="font-serif text-3xl text-stone-900">{s.value}</p>
           </div>
@@ -70,19 +86,24 @@ export default async function DashboardPage() {
       {lastCycle?.feedback && (
         <div className="bg-white border border-stone-200 rounded-xl p-5 mb-5">
           <p className="text-xs text-stone-400 uppercase tracking-[0.1em] mb-3">Last cycle feedback</p>
-          <p className="text-sm text-stone-500 italic leading-relaxed mb-2">"{(lastCycle.feedback as any).headline}"</p>
-          <p className="text-sm text-blue-600 font-medium">→ {(lastCycle.feedback as any).next_cycle_focus}</p>
+          <p className="text-sm text-stone-500 italic leading-relaxed mb-2">
+            &ldquo;{(lastCycle.feedback as any).headline}&rdquo;
+          </p>
+          <p className="text-sm text-blue-600 font-medium">
+            → {(lastCycle.feedback as any).next_cycle_focus}
+          </p>
         </div>
       )}
 
-      {/* Phase reminder */}
+      {/* Phase legend */}
       <div className="flex gap-2 mb-6">
         {[
-          { label: "Learn", pct: "20%", color: "text-green-600 bg-green-50 border-green-200" },
-          { label: "Build", pct: "60%", color: "text-blue-700 bg-blue-50 border-blue-200" },
+          { label: "Learn",  pct: "20%", color: "text-green-600 bg-green-50 border-green-200" },
+          { label: "Build",  pct: "60%", color: "text-blue-700 bg-blue-50 border-blue-200" },
           { label: "Refine", pct: "20%", color: "text-amber-700 bg-amber-50 border-amber-200" },
         ].map(p => (
-          <div key={p.label} className={`flex-1 rounded-lg border py-2 text-center ${p.color}`}>
+          <div key={p.label}
+            className={`flex-1 rounded-lg border py-2 text-center ${p.color}`}>
             <div className="text-xs font-semibold">{p.label}</div>
             <div className="text-xs opacity-70">{p.pct}</div>
           </div>
@@ -90,17 +111,23 @@ export default async function DashboardPage() {
       </div>
 
       {nextCycleNum <= totalCycles ? (
-        <Link
-          href="/cycle/learn"
-          className="block w-full bg-stone-900 text-stone-50 font-semibold text-base text-center py-4 rounded-xl hover:bg-stone-800 transition-colors"
-        >
-          {completedCycles.length === 0 ? "Start cycle 1 →" : `Start cycle ${nextCycleNum} →`}
+        <Link href="/cycle/learn"
+          className="block w-full bg-stone-900 text-stone-50 font-semibold text-base text-center py-4 rounded-xl hover:bg-stone-800 transition-colors">
+          {completedCycles.length === 0
+            ? "Start cycle 1 →"
+            : `Start cycle ${nextCycleNum} →`}
         </Link>
       ) : (
         <div className="text-center py-8">
           <div className="font-serif text-4xl mb-3">◈</div>
           <h2 className="font-serif text-2xl mb-2">Path complete.</h2>
-          <p className="text-sm text-stone-500">You finished all {totalCycles} cycles. That&apos;s mastery in progress.</p>
+          <p className="text-sm text-stone-500 mb-6">
+            You finished all {totalCycles} cycles of {track.skill}. That&apos;s mastery in progress.
+          </p>
+          <Link href="/account"
+            className="inline-block bg-stone-900 text-stone-50 font-semibold px-6 py-3 rounded-xl hover:bg-stone-800 transition-colors text-sm">
+            Start a new skill →
+          </Link>
         </div>
       )}
     </div>

@@ -52,6 +52,19 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
+    // ── Deactivate ALL previous active tracks ────────────────────
+    // Prevents old skill from resurfacing on dashboard after reset
+    await supabase
+      .from("tracks")
+      .update({ is_active: false })
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+
+    // Clear any stale session data from a previous skill or cycle
+    sessionStorage.removeItem("mastery_track");
+    sessionStorage.removeItem("mastery_submission");
+
+    // Create the new track
     const { data: track, error } = await supabase
       .from("tracks")
       .insert({ user_id: user.id, skill: skillLabel, duration, goal: goal.trim(), is_active: true })
@@ -64,8 +77,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    // KEY FIX: store the full track in sessionStorage so every
-    // phase component reads the real user skill, not hardcoded values
+    // Store fresh track in sessionStorage for phase components
     sessionStorage.setItem(
       "mastery_track",
       JSON.stringify({ id: track.id, skill: skillLabel, duration, goal: goal.trim() })
